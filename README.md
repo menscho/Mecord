@@ -13,6 +13,7 @@
 
 <p align="center">
   <a href="#install">Install</a> ·
+  <a href="#uninstall">Uninstall</a> ·
   <a href="#build-from-source">Build</a> ·
   <a href="#features">Features</a> ·
   <a href="#plugins">Plugins</a> ·
@@ -65,6 +66,8 @@ Requirements: Windows 10 or 11, and the Discord desktop app installed (stable ch
 3. If Discord is already running without Mecord, Mecord asks before it restarts Discord. A restart is the only way to attach.
 4. Click the gray **M** in Discord's title bar, or press **Ctrl+Shift+M**.
 
+The zip also contains `uninstall.exe`, which removes Mecord again. See [Uninstall](#uninstall).
+
 The executable is not code-signed, so Windows SmartScreen may warn on first run. Check the file against the SHA-256 hashes in the release notes before you run it.
 
 ### Build from source
@@ -82,7 +85,7 @@ npm install
 npm run build
 ```
 
-`npm run build` typechecks the TypeScript, bundles the Discord runtime, builds the signed plugin catalog and compiles `target\release\mecord.exe`. Run that exe from the repository. It finds the `store` folder in the repository root by itself.
+`npm run build` typechecks the TypeScript, bundles the Discord runtime, builds the signed plugin catalog and compiles `target\release\mecord.exe` and `target\release\uninstall.exe`. Run `mecord.exe` from the repository. It finds the `store` folder in the repository root by itself.
 
 > **About signing keys.** The first `npm run build` creates `keys/store.key`, a private signing key that stays on your machine and is git-ignored. Mecord only trusts catalogs signed by the public key in `keys/store.pub`, which is compiled into the exe. A source build therefore signs its own catalog. Keep `store.key` safe. If it is lost, a new key is created and the exe has to be rebuilt.
 
@@ -109,12 +112,44 @@ npm run build
 | Theme CSS files | `%AppData%\Mecord\themes\` |
 | Backups | `%AppData%\Mecord\backups\` |
 | Log | `%AppData%\Mecord\logs\mecord.log` |
+| Desktop shortcut | `Mecord.lnk` on your desktop (created by `--install-shortcut`) |
 
 Mecord runs in the background while Discord is open and exits when Discord does. It has no tray icon.
 
 ### Automatic recovery
 
 If the injected runtime does not report ready within 25 seconds, the host removes the injection and reloads a clean page, so Discord keeps working. Three failed starts in a row switch Mecord to safe mode until you press **Leave safe mode** in the Health tab.
+
+## Uninstall
+
+The release zip includes `uninstall.exe`. Double-click it in the Mecord folder. It asks once, then removes Mecord completely:
+
+- Mecord's data folder, `%AppData%\Mecord`: settings, installed plugins, your own plugins, themes, logs and internal backups
+- the **Mecord** shortcut on your desktop
+- `mecord.exe`, `QUICKSTART.txt`, `uninstall.exe` and the `store` folder in the Mecord folder, and the folder itself if nothing else is left in it
+
+It stops Mecord first, including the helper programs it started. It keeps:
+
+- backups you exported to your Documents folder (`Mecord-backup-*.json`). Delete them yourself if you no longer need them
+- Discord. Its files are never changed. Restart Discord afterwards; the running Discord keeps Mecord until it restarts
+
+### Command line
+
+The same removal as a single paste, for when you would rather not run an exe. Paste it into **Command Prompt** (cmd, not PowerShell) and change the first line to your Mecord folder:
+
+```bat
+set "MECORD_DIR=%USERPROFILE%\Downloads\Mecord-0.1.0-windows-x64"
+taskkill /F /IM mecord.exe >nul 2>&1
+powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine.Contains((Join-Path $env:APPDATA 'Mecord\cache\native')) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+ping -n 3 127.0.0.1 >nul
+rmdir /S /Q "%APPDATA%\Mecord"
+powershell -NoProfile -Command "Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Mecord.lnk') -Force -ErrorAction SilentlyContinue"
+del /F /Q "%MECORD_DIR%\mecord.exe" "%MECORD_DIR%\QUICKSTART.txt" "%MECORD_DIR%\uninstall.exe" 2>nul
+rmdir /S /Q "%MECORD_DIR%\store" 2>nul
+rmdir "%MECORD_DIR%" 2>nul
+```
+
+It keeps the same things as `uninstall.exe`. Restart Discord afterwards.
 
 ## Plugins
 
@@ -341,7 +376,7 @@ The full design, with the process model and trade-offs, is in [`docs/DESIGN.md`]
 - Message Logger on real deletions and edits, the voice recorder, Timezones' per-user display, Who Reacted's list, Image Zoom and most CSS-only plugins. Their selectors depend on Discord's hashed class names, which can drift with updates. Diagnostics does not flag a CSS plugin whose selectors stop matching.
 - PTB and Canary
 
-**Other gaps:** no tray icon, no installer and no custom exe icon. The Patch Editor and Quick CSS are plain text areas without syntax highlighting. Discord's own self-update restart is detected, but you need to click to re-attach. Only one Discord channel is supervised at a time. The catalog is not yet hosted anywhere; for a public release, the signed `store` folder ships in the release zip.
+**Other gaps:** no tray icon, no installer (there is an uninstaller) and no custom exe icon. The Patch Editor and Quick CSS are plain text areas without syntax highlighting. Discord's own self-update restart is detected, but you need to click to re-attach. Only one Discord channel is supervised at a time. The catalog is not yet hosted anywhere; for a public release, the signed `store` folder ships in the release zip.
 
 **Developer tools** are in [`tools/`](tools/): `cdp.mjs` evaluates JavaScript in the live Discord page, and the `test-*.mjs` scripts are live tests (`npm run test:live`). They need a Discord started by Mecord.
 
@@ -350,6 +385,7 @@ The full design, with the process model and trade-offs, is in [`docs/DESIGN.md`]
 | Path | What is in it |
 | --- | --- |
 | `src/` | The Rust host: launcher, Chrome DevTools connection, store client, compiler, native helpers, settings |
+| `src/bin/` | The uninstaller (`uninstall.exe`) |
 | `core/src/` | The TypeScript runtime that is injected into Discord, including the settings window |
 | `plugins/` | The built-in plugins, one folder each, plus `api.d.ts` |
 | `store-themes/` | The themes shipped in the catalog |
