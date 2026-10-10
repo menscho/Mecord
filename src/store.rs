@@ -16,8 +16,13 @@ const PUBKEY_HEX: &str = include_str!("../keys/store.pub");
 const MAX_FILE: u64 = 8 * 1024 * 1024;
 const MAX_FILES: usize = 64;
 const MAX_INDEX: u64 = 4 * 1024 * 1024;
+/// Base name for the catalog compiled into this exe.
+const BUILT_IN: &str = "built-in";
 
-/// Where the catalog lives: config override, env var, then `store/` next to the exe or in the working dir.
+include!(concat!(env!("OUT_DIR"), "/embedded_store.rs"));
+
+/// Where the catalog lives: config override, env var, then a `store/` folder next to the exe or in one of its parent
+/// folders, and otherwise the catalog built into the exe.
 pub fn base(configured: &str) -> String {
     if !configured.is_empty() { return configured.to_string(); }
     if let Ok(v) = std::env::var("MECORD_STORE") { return v; }
@@ -27,7 +32,7 @@ pub fn base(configured: &str) -> String {
             if c.join("index.json").exists() { return c.to_string_lossy().into_owned(); }
         }
     }
-    "store".into()
+    BUILT_IN.into()
 }
 
 fn fetch(base: &str, rel: &str, limit: u64) -> Result<Vec<u8>> {
@@ -39,6 +44,11 @@ fn fetch(base: &str, rel: &str, limit: u64) -> Result<Vec<u8>> {
         resp.into_reader().take(limit + 1).read_to_end(&mut buf)?;
         if buf.len() as u64 > limit { bail!("{rel}: larger than allowed ({limit} bytes)") }
         Ok(buf)
+    } else if base == BUILT_IN {
+        let (_, data) = BUILT_IN_FILES.iter().find(|(name, _)| *name == rel)
+            .ok_or_else(|| anyhow!("{rel} is not in the catalog built into this exe (no store folder was found next to mecord.exe)"))?;
+        if data.len() as u64 > limit { bail!("{rel}: larger than allowed") }
+        Ok(data.to_vec())
     } else {
         let p = Path::new(base.trim_start_matches("file:///")).join(rel);
         let md = fs::metadata(&p).with_context(|| format!("reading {}", p.display()))?;
@@ -226,4 +236,40 @@ pub fn recover() {
         let _ = fs::remove_file(e.path());
     }
     let _ = fs::remove_dir_all(paths::plugins().join(".staging"));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn built_in(name: &str) -> Option<&'static [u8]> {
+        BUILT_IN_FILES.iter().find(|(n, _)| *n == name).map(|(_, d)| *d)
+    }
+
+    /// The exe must carry a catalog that the pinned key signed, and every file that index lists.
+    #[test]
+    fn built_in_catalog_verifies_and_matches_its_index() {
+        let idx = built_in("index.json").expect("store/index.json must be built (npm run build) before cargo test");
+        verify_index(idx, built_in("index.json.sig").expect("store/index.json.sig must be built")).expect("built-in catalog must verify");
+        let json: Value = serde_json::from_slice(idx).unwrap();
+        let mut checked = 0;
+        for (kind, items) in [("plugins", &json["plugins"]), ("themes", &json["themes"])] {
+            for item in items.as_array().unwrap() {
+                let (id, version) = (item["id"].as_str().unwrap(), item["version"].as_str().unwrap());
+                for f in item["files"].as_array().unwrap() {
+                    let rel = f["path"].as_str().unwrap();
+                    let data = fetch(BUILT_IN, &format!("{kind}/{id}/{version}/{rel}"), MAX_FILE).unwrap();
+                    assert_eq!(sha256_hex(&data), f["sha256"].as_str().unwrap().to_lowercase(), "{id}/{rel}");
+                    checked += 1;
+                }
+            }
+        }
+        assert!(checked > 0);
+    }
+
+    /// The test binary runs from target\debug, where no store folder is found, so it must use the built-in catalog.
+    #[test]
+    fn without_a_store_folder_the_built_in_catalog_is_used() {
+        if std::env::var_os("MECORD_STORE").is_none() { assert_eq!(base(""), BUILT_IN); }
+    }
 }

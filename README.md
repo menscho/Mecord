@@ -61,7 +61,7 @@ Mecord never patches Discord's files on disk. Start Discord without Mecord, or w
 
 Requirements: Windows 10 or 11, and the Discord desktop app installed (stable channel).
 
-1. Download `Mecord-0.1.0-windows-x64.zip` from the [latest release](https://github.com/menscho/Mecord/releases/latest) and extract it. Keep the `store` folder next to `mecord.exe`; that is where the plugin catalog lives.
+1. Download `Mecord-0.1.0-windows-x64.zip` from the [latest release](https://github.com/menscho/Mecord/releases/latest) and extract it. The `store` folder next to `mecord.exe` holds the signed plugin catalog. `mecord.exe` has the same catalog built in, so the folder is optional.
 2. Run `mecord.exe --install-shortcut` once. It creates a Mecord shortcut on your desktop that uses Discord's icon. Start Discord through that shortcut from now on.
 3. If Discord is already running without Mecord, Mecord asks before it restarts Discord. A restart is the only way to attach.
 4. Click the gray **M** in Discord's title bar, or press **Ctrl+Shift+M**.
@@ -376,7 +376,7 @@ The full design, with the process model and trade-offs, is in [`docs/DESIGN.md`]
 - Message Logger on real deletions and edits, the voice recorder, Timezones' per-user display, Who Reacted's list, Image Zoom and most CSS-only plugins. Their selectors depend on Discord's hashed class names, which can drift with updates. Diagnostics does not flag a CSS plugin whose selectors stop matching.
 - PTB and Canary
 
-**Other gaps:** no tray icon, no installer (there is an uninstaller) and no custom exe icon. The Patch Editor and Quick CSS are plain text areas without syntax highlighting. Discord's own self-update restart is detected, but you need to click to re-attach. Only one Discord channel is supervised at a time. The catalog is not yet hosted anywhere; for a public release, the signed `store` folder ships in the release zip.
+**Other gaps:** no tray icon, no installer (there is an uninstaller) and no custom exe icon. The Patch Editor and Quick CSS are plain text areas without syntax highlighting. Discord's own self-update restart is detected, but you need to click to re-attach. Only one Discord channel is supervised at a time. The catalog is not yet hosted anywhere; for a public release, the signed `store` folder ships in the release zip and the same catalog is built into `mecord.exe`.
 
 **Developer tools** are in [`tools/`](tools/): `cdp.mjs` evaluates JavaScript in the live Discord page, and the `test-*.mjs` scripts are live tests (`npm run test:live`). They need a Discord started by Mecord.
 
