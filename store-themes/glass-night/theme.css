@@ -1,0 +1,24 @@
+/**
+ * @name Glass Night
+ * @version 1.0.0
+ * @description Frosted panels and a softer message column. Works with any built-in theme.
+ * @author Mecord
+ * @tags cosmetic, look
+ */
+
+/* Panels get a translucent, blurred look. Colours still come from the active theme. */
+html:not([data-mecord-layout="minimal"]) [class*="sidebar_"],
+html:not([data-mecord-layout="minimal"]) [class*="membersWrap"],
+html:not([data-mecord-layout="minimal"]) [class*="guilds_"] {
+  background: color-mix(in srgb, var(--background-base-lower, #2b2d31) 78%, transparent) !important;
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+
+/* A gentler message column with rounder hover states. */
+[class*="messagesWrapper"] {
+  border-radius: 14px;
+}
+[class*="message_"]:hover {
+  background: color-mix(in srgb, var(--text-normal, #dbdee1) 4%, transparent) !important;
+  border-radius: 10px;
+}

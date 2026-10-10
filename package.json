@@ -1,0 +1,21 @@
+{
+  "name": "mecord",
+  "version": "0.1.0",
+  "description": "Mecord: companion launcher and plugin host for the Discord desktop client",
+  "private": true,
+  "scripts": {
+    "build:core": "node tools/build-core.mjs --min",
+    "build:store": "node tools/build-store.mjs",
+    "typecheck": "tsc -p . --noEmit",
+    "build": "npm run typecheck && npm run build:core && npm run build:store && cargo build --release",
+    "test:live": "node tools/test-backup.mjs && node tools/test-tamper.mjs && node tools/test-recovery.mjs"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "electron": "^33.4.11",
+    "esbuild": "^0.25.10",
+    "typescript": "^5.6.3"
+  }
+}

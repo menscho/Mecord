@@ -1,0 +1,22 @@
+[package]
+name = "mecord"
+version = "0.1.0"
+edition = "2021"
+description = "Mecord: companion launcher and plugin host for the Discord desktop client"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tungstenite = "0.24"
+sha2 = "0.10"
+hex = "0.4"
+ed25519-dalek = "2"
+ureq = "2"
+windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Threading"] }
+
+[profile.release]
+lto = true
+strip = true
+opt-level = "s"
+codegen-units = 1

@@ -1,0 +1,7 @@
+target/
+node_modules/
+core/dist/
+keys/store.key
+store/
+dist/
+*.log

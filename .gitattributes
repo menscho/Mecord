@@ -1,0 +1,5 @@
+# Keep line endings consistent in the repository (LF), whatever the checkout platform.
+* text=auto eol=lf
+*.exe binary
+*.zip binary
+*.png binary

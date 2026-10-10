@@ -1,0 +1,22 @@
+/**
+ * @name Mono Terminal
+ * @version 1.0.0
+ * @description Monospace chat text and flat, square panels, like a terminal.
+ * @author Mecord
+ * @tags cosmetic, look
+ */
+
+/* Monospace everywhere in the chat, with no rounding on the panels. */
+[class*="messageContent"],
+[class*="markup_"] {
+  font-family: "Cascadia Code", Consolas, monospace !important;
+  font-size: 0.95em;
+}
+[class*="sidebar_"],
+[class*="membersWrap"],
+[class*="guilds_"] {
+  border-radius: 0 !important;
+}
+[class*="message_"] {
+  border-radius: 0 !important;
+}
